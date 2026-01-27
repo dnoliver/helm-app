@@ -9,17 +9,38 @@ jobs:
 
     steps:
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y jq
+        run: sudo apt-get update && sudo apt-get install -y jq curl
 
       - name: Get access token from Cognito
+        id: get_token
         env:
           AUTH_BASIC: ${{ secrets.AUTH_BASIC }}
         run: |
-          echo -n "$AUTH_BASIC" | sha256sum
-
-          # Request token
-          curl -v -X POST \
+          # Request token and capture access_token
+          ACCESS_TOKEN=$(curl -s -X POST \
             https://panasky-panasonicaero-idam-userpool.auth.us-west-2.amazoncognito.com/oauth2/token \
             -H "Authorization: Basic ${AUTH_BASIC}" \
             -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "grant_type=client_credentials&scope=cloudservices.rs1/converix.applications.read cloudservices.rs1/converix.applications.write cloudservices.rs1/converix.features.read cloudservices.rs1/converix.features.write"
+            -d "grant_type=client_credentials&scope=cloudservices.rs1/converix.applications.read cloudservices.rs1/converix.applications.write cloudservices.rs1/converix.features.read cloudservices.rs1/converix.features.write" \
+            | jq -r '.access_token')
+
+          # Fail if token is missing
+          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
+            echo "Error: Failed to retrieve access token"
+            exit 1
+          fi
+
+          # Mask token and export for later steps
+          echo "::add-mask::$ACCESS_TOKEN"
+          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+
+      - name: Call Converix Applications API
+        env:
+          ACCESS_TOKEN: ${{ env.ACCESS_TOKEN }}
+        run: |
+          echo "Calling GET /applications..."
+          curl -s -X GET \
+            https://api.converix-dev.nextcloud.aero/v1/applications \
+            -H "accept: application/json" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            | jq .
