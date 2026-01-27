@@ -13,7 +13,6 @@ jobs:
 
       - name: Get access token from Cognito
         env:
-          CLIENT_ID: ${{ secrets.CLIENT_ID }}
           AUTH_BASIC: ${{ secrets.AUTH_BASIC }}
         run: |
           echo -n "$AUTH_BASIC" | sha256sum
