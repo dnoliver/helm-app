@@ -4,10 +4,29 @@ on:
   workflow_dispatch:
 
 jobs:
-  create-version:
+  push-chart:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Package Helm chart
+        run: |
+          helm package ./chart
+
+      - name: Upload Helm package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-package
+          path: '*.tgz'
+          retention-days: 7
+
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y jq curl
 
@@ -34,13 +53,33 @@ jobs:
           echo "::add-mask::$ACCESS_TOKEN"
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
 
-      - name: Call Converix Applications API
+      - name: Download Helm package
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-package
+
+      - name: Upload Helm chart to presigned URL
         env:
           ACCESS_TOKEN: ${{ env.ACCESS_TOKEN }}
         run: |
-          echo "Calling GET /applications..."
-          curl -s -X GET \
-            https://api.converix-dev.nextcloud.aero/v1/applications \
+          CHART_FILE="chart-0.1.0.tgz"
+          PROJECT_ID="65b03869-18f7-4b51-8976-56f866273d48"
+          VERSION_ID="4b5f4e76-576c-44cd-afa9-6c27f07422b7"
+
+          # Request presigned URL from API
+          PRESIGNED_URL=$(curl -s -X POST \
+            https://api.converix-dev.nextcloud.aero/v1/applications/${PROJECT_ID}/versions/${VERSION_ID}/files \
             -H "accept: application/json" \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
-            | jq .
+            -H "Content-Type: application/json" \
+            -d "{\"filename\": \"$CHART_FILE\"}" \
+            | jq -r '.url')
+
+          echo "Presigned URL obtained"
+
+          # Upload chart
+          curl -v -T "$CHART_FILE" \
+            -H "Content-Type: application/octet-stream" \
+            "$PRESIGNED_URL"
+
+          echo "Upload complete"
