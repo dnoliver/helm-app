@@ -14,14 +14,8 @@ jobs:
       - name: Get access token from Cognito
         env:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
-          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          AUTH_BASIC: ${{ secrets.AUTH_BASIC }}
         run: |
-          # Create base64-encoded credentials
-          AUTH_BASIC=$(printf "%s" "${CLIENT_ID}:${CLIENT_SECRET}" | base64)
-
-          # Print sha256sum of variables
-          echo -n "$CLIENT_ID" | sha256sum
-          echo -n "$CLIENT_SECRET" | sha256sum 
           echo -n "$AUTH_BASIC" | sha256sum
 
           # Request token
