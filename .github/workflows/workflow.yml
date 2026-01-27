@@ -62,9 +62,12 @@ jobs:
         env:
           ACCESS_TOKEN: ${{ env.ACCESS_TOKEN }}
         run: |
-          CHART_FILE="chart-0.1.0.tgz"
+          # Dynamically get the chart file name
+          CHART_FILE=$(ls *.tgz | head -n 1)
           PROJECT_ID="65b03869-18f7-4b51-8976-56f866273d48"
           VERSION_ID="4b5f4e76-576c-44cd-afa9-6c27f07422b7"
+
+          echo "Uploading chart file: $CHART_FILE"
 
           # Request presigned URL from API
           PRESIGNED_URL=$(curl -s -X POST \
