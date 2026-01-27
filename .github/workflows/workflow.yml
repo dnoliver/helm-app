@@ -20,7 +20,7 @@ jobs:
           AUTH_BASIC=$(echo -n "${CLIENT_ID}:${CLIENT_SECRET}" | base64)
 
           # Request token
-          curl -s -X POST \
+          curl -v -X POST \
             https://panasky-panasonicaero-idam-userpool.auth.us-west-2.amazoncognito.com/oauth2/token \
             -H "Authorization: Basic ${AUTH_BASIC}" \
             -H "Content-Type: application/x-www-form-urlencoded" \
