@@ -19,22 +19,14 @@ jobs:
           # Create base64-encoded credentials
           AUTH_BASIC=$(echo -n "${CLIENT_ID}:${CLIENT_SECRET}" | base64)
 
+          # Print sha256sum of variables
+          echo -n "$CLIENT_ID" | sha256sum
+          echo -n "$CLIENT_SECRET" | sha256sum 
+          echo -n "$AUTH_BASIC" | sha256sum
+
           # Request token
           curl -v -X POST \
             https://panasky-panasonicaero-idam-userpool.auth.us-west-2.amazoncognito.com/oauth2/token \
             -H "Authorization: Basic ${AUTH_BASIC}" \
             -H "Content-Type: application/x-www-form-urlencoded" \
             -d "grant_type=client_credentials&scope=cloudservices.rs1/converix.applications.read cloudservices.rs1/converix.applications.write cloudservices.rs1/converix.features.read cloudservices.rs1/converix.features.write"
-
-          # Export for later steps
-          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
-
-      - name: Call Converix Applications API
-        env:
-          ACCESS_TOKEN: ${{ env.ACCESS_TOKEN }}
-        run: |
-          curl -s -X GET \
-            https://api.converix-dev.nextcloud.aero/v1/applications \
-            -H "accept: application/json" \
-            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-            | jq .
