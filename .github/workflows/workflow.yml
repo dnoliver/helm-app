@@ -174,22 +174,25 @@ jobs:
             echo "✓ Version '$APP_VERSION' already exists with ID: $VERSION_ID"
           fi
           
+          echo "APP_ID=$APP_ID" >> $GITHUB_ENV
+          echo "VERSION_ID=$VERSION_ID" >> $GITHUB_ENV
+
           echo "✓ All checks completed successfully"
 
       - name: Upload Helm chart to presigned URL
         env:
           ACCESS_TOKEN: ${{ env.ACCESS_TOKEN }}
+          APP_ID: ${{ env.ACCESS_TOKEN }}
+          VERSION_ID: ${{ env.ACCESS_TOKEN }}
         run: |
           # Dynamically get the chart file name
           CHART_FILE=$(ls *.tgz | head -n 1)
-          PROJECT_ID="65b03869-18f7-4b51-8976-56f866273d48"
-          VERSION_ID="4b5f4e76-576c-44cd-afa9-6c27f07422b7"
 
           echo "Uploading chart file: $CHART_FILE"
 
           # Request presigned URL from API
           PRESIGNED_URL=$(curl -s -X POST \
-            https://api.converix-dev.nextcloud.aero/v1/applications/${PROJECT_ID}/versions/${VERSION_ID}/files \
+            https://api.converix-dev.nextcloud.aero/v1/applications/${APP_ID}/versions/${VERSION_ID}/files \
             -H "accept: application/json" \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
             -H "Content-Type: application/json" \
