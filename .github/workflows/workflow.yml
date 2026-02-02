@@ -182,8 +182,8 @@ jobs:
       - name: Upload Helm chart to presigned URL
         env:
           ACCESS_TOKEN: ${{ env.ACCESS_TOKEN }}
-          APP_ID: ${{ env.ACCESS_TOKEN }}
-          VERSION_ID: ${{ env.ACCESS_TOKEN }}
+          APP_ID: ${{ env.APP_ID }}
+          VERSION_ID: ${{ env.VERSION_ID }}
         run: |
           # Dynamically get the chart file name
           CHART_FILE=$(ls *.tgz | head -n 1)
