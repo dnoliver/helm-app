@@ -58,6 +58,124 @@ jobs:
         with:
           name: helm-package
 
+      - name: Ensure App and Version
+        env:
+          ACCESS_TOKEN: ${{ env.ACCESS_TOKEN }}
+          API_BASE_URL: https://api.converix-dev.nextcloud.aero
+        run: |
+          # Dynamically get the app details from Helm chart
+          APP_NAME=$(helm show chart ./chart | grep '^name:' | awk -F': ' '{print $2}')
+          APP_DESCRIPTION=$(helm show chart ./chart | grep '^description:' | awk -F': ' '{print $2}')
+          APP_VERSION=$(helm show chart ./chart | grep '^version:' | awk '{print $2}')
+          
+          echo "App Name: $APP_NAME"
+          echo "App Description: $APP_DESCRIPTION"
+          echo "App Version: $APP_VERSION"
+          
+          # Helper function for API calls
+          api_call() {
+            local method=$1
+            local endpoint=$2
+            local data=$3
+            local url="${API_BASE_URL}${endpoint}"
+            
+            if [ -n "$data" ]; then
+              curl -s -X "$method" \
+                -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d "$data" \
+                "$url"
+            else
+              curl -s -X "$method" \
+                -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+                "$url"
+            fi
+          }
+          
+          # Step 1: Check if application exists by listing all applications
+          echo "Checking if application '$APP_NAME' exists..."
+          APPS_RESPONSE=$(api_call "GET" "/v1/applications?limit=100" "")
+          APP_ID=$(echo "$APPS_RESPONSE" | jq -r --arg name "$APP_NAME" '.items[] | select(.name == $name) | .id')
+          
+          if [ -z "$APP_ID" ] || [ "$APP_ID" = "null" ]; then
+            echo "Application '$APP_NAME' does not exist. Creating..."
+            
+            # Create the application
+            CREATE_PAYLOAD=$(jq -n \
+              --arg name "$APP_NAME" \
+              --arg description "$APP_DESCRIPTION" \
+              '{name: $name, description: $description}')
+            
+            CREATE_RESPONSE=$(api_call "POST" "/v1/applications" "$CREATE_PAYLOAD")
+            APP_ID=$(echo "$CREATE_RESPONSE" | jq -r '.id')
+            
+            if [ -z "$APP_ID" ] || [ "$APP_ID" = "null" ]; then
+              echo "Failed to create application:"
+              echo "$CREATE_RESPONSE"
+              exit 1
+            fi
+            
+            echo "✓ Application created with ID: $APP_ID"
+          else
+            echo "✓ Application '$APP_NAME' exists with ID: $APP_ID"
+            
+            # Step 2: Check if description needs to be updated
+            EXISTING_DESCRIPTION=$(echo "$APPS_RESPONSE" | jq -r --arg name "$APP_NAME" '.items[] | select(.name == $name) | .description')
+            
+            if [ "$EXISTING_DESCRIPTION" != "$APP_DESCRIPTION" ]; then
+              echo "Description differs. Updating..."
+              echo "  Existing: $EXISTING_DESCRIPTION"
+              echo "  New: $APP_DESCRIPTION"
+              
+              UPDATE_PAYLOAD=$(jq -n \
+                --arg name "$APP_NAME" \
+                --arg description "$APP_DESCRIPTION" \
+                '{name: $name, description: $description}')
+              
+              UPDATE_RESPONSE=$(api_call "PATCH" "/v1/applications/${APP_ID}" "$UPDATE_PAYLOAD")
+              
+              if echo "$UPDATE_RESPONSE" | jq -e 'has("error")' > /dev/null; then
+                echo "Failed to update description:"
+                echo "$UPDATE_RESPONSE"
+                exit 1
+              fi
+              
+              echo "✓ Description updated"
+            else
+              echo "✓ Description is already up to date"
+            fi
+          fi
+          
+          # Step 3: Check if version exists for this application
+          echo "Checking if version '$APP_VERSION' exists for application..."
+          VERSIONS_RESPONSE=$(api_call "GET" "/v1/applications/${APP_ID}/versions?limit=100" "")
+          VERSION_ID=$(echo "$VERSIONS_RESPONSE" | jq -r --arg version "$APP_VERSION" '.items[] | select(.version == $version) | .id')
+          
+          if [ -z "$VERSION_ID" ] || [ "$VERSION_ID" = "null" ]; then
+            echo "Version '$APP_VERSION' does not exist. Creating..."
+            
+            # Create the version
+            VERSION_PAYLOAD=$(jq -n \
+              --arg version "$APP_VERSION" \
+              --arg notes "Chart version ${APP_VERSION}" \
+              '{version: $version, notes: $notes}')
+            
+            VERSION_RESPONSE=$(api_call "POST" "/v1/applications/${APP_ID}/versions" "$VERSION_PAYLOAD")
+            VERSION_ID=$(echo "$VERSION_RESPONSE" | jq -r '.id')
+            
+            if [ -z "$VERSION_ID" ] || [ "$VERSION_ID" = "null" ]; then
+              echo "Failed to create version:"
+              echo "$VERSION_RESPONSE"
+              exit 1
+            fi
+            
+            echo "✓ Version created with ID: $VERSION_ID"
+          else
+            echo "✓ Version '$APP_VERSION' already exists with ID: $VERSION_ID"
+          fi
+          
+          echo "✓ All checks completed successfully"
+
       - name: Upload Helm chart to presigned URL
         env:
           ACCESS_TOKEN: ${{ env.ACCESS_TOKEN }}
