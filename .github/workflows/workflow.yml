@@ -2,6 +2,9 @@ name: Application Delivery Workflow
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   push-chart:
