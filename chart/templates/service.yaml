@@ -4,6 +4,8 @@ metadata:
   name: {{ include "chart.fullname" . }}
   labels:
     {{- include "chart.labels" . | nindent 4 }}
+  annotations:
+    metallb.io/ip-allocated-from-pool: metallb-service-pool-a
 spec:
   type: {{ .Values.service.type }}
   ports:
