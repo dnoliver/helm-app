@@ -1,5 +1,5 @@
 apiVersion: v2
-name: hello-world
+name: hello-world-converix
 description: A sample Helm chart demonstrating CI/CD integration between GitHub and the Converix API
 icon: https://raw.githubusercontent.com/kubernetes/website/refs/heads/main/assets/icons/logo.svg
 
