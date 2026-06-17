@@ -4,7 +4,7 @@ DIST_DIR := dist
 
 REGISTRY := registry.panasonic.io:5000
 IMAGE_NAME := nginx
-IMAGE_TAG := 1.31.1
+IMAGE_TAG := 1.30.2
 DOCKER_ARCHIVE := $(DIST_DIR)/docker/$(IMAGE_NAME)-$(IMAGE_TAG).tar
 OCI_ARCHIVE := $(DIST_DIR)/oci/$(IMAGE_NAME)-$(IMAGE_TAG).tar
 
@@ -24,7 +24,7 @@ image: $(DIST_DIR)
 	docker pull --platform linux/amd64 $(IMAGE_NAME):$(IMAGE_TAG)
 	docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 	docker save --platform linux/amd64 -o $(DOCKER_ARCHIVE) $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
-	skopeo copy docker-daemon:$(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG) oci-archive:$(OCI_ARCHIVE):$(IMAGE_NAME):$(IMAGE_TAG)
+	skopeo copy --override-os linux --override-arch amd64 docker://$(IMAGE_NAME):$(IMAGE_TAG) oci-archive:$(OCI_ARCHIVE):$(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
 clean:
 	rm -rf $(DIST_DIR)
