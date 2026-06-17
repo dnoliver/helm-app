@@ -2,7 +2,7 @@
 CHART_DIR := chart
 DIST_DIR := dist
 
-REGISTRY := registry.panasonic.aero:5000
+REGISTRY := registry.panasonic.io:5000
 IMAGE_NAME := nginx
 IMAGE_TAG := 1.31.1
 DOCKER_ARCHIVE := $(DIST_DIR)/docker/$(IMAGE_NAME)-$(IMAGE_TAG).tar
