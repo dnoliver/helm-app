@@ -1,0 +1,17 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-loadbalancer-ingress
+spec:
+  endpointSelector:
+    matchLabels:
+        {{- include "chart.selectorLabels" . | nindent 6 }}
+  ingress:
+    - fromEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: {{ .Values.service.port }}
+              protocol: TCP
+
+ 
