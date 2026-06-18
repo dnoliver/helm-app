@@ -11,7 +11,7 @@ spec:
         - world
       toPorts:
         - ports:
-            - port: {{ .Values.service.port }}
+            - port: "{{ .Values.service.port }}"
               protocol: TCP
 
  
